@@ -117,7 +117,7 @@ Obs: Quando um jogo é deletado, todas as suas etapas são deletadas automaticam
 
 ## Front-end
 
-O front-end do projeto está em outro repositório: [guiagamer-fe](LINK_DO_FRONT)
+O front-end do projeto está em outro repositório: [guiagamer-fe](https://github.com/fredericwithc/guiagamer-fe)
 
 ## Feito por
 
