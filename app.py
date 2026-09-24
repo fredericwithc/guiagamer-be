@@ -1,3 +1,6 @@
+import os
+import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -5,6 +8,12 @@ from flasgger import Swagger
 
 # cria a aplicacao
 app = Flask(__name__)
+
+# carrega as variaveis de ambiente do arquivo .env
+load_dotenv()
+
+# pega a chave da rawg
+RAWG_API_KEY = os.getenv('RAWG_API_KEY')
 
 # ativação do CORS
 CORS(app)
@@ -35,6 +44,7 @@ class Jogo(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     plataforma = db.Column(db.String(50), nullable=False)
     descricao = db.Column(db.Text, nullable=True)
+    imagem_url = db.Column(db.String(500), nullable=True)
     
     # relacionamento com as etapas
     # cascade='all, delete-orphan' faz com que ao deletar um jogo, 
@@ -42,12 +52,13 @@ class Jogo(db.Model):
     etapas = db.relationship('Etapa', backref='jogo', cascade='all, delete-orphan')
     
     def to_dict(self):
-        return {
-            'id': self.id,
-            'nome': self.nome,
-            'plataforma': self.plataforma,
-            'descricao': self.descricao
-        }
+      return {
+          'id': self.id,
+          'nome': self.nome,
+          'plataforma': self.plataforma,
+          'descricao': self.descricao,
+          'imagem_url': self.imagem_url
+      }
 
 
 class Etapa(db.Model):
@@ -149,6 +160,9 @@ def cadastrar_jogo():
             descricao:
               type: string
               example: "RPG classico de Pokemon"
+            imagem_url:
+              type: string
+              example: "https://media.rawg.io/media/games/xxx.jpg"
     responses:
       201:
         description: Jogo cadastrado com sucesso
@@ -163,10 +177,11 @@ def cadastrar_jogo():
         }), 400
     
     novo_jogo = Jogo(
-        nome=dados['nome'],
-        plataforma=dados['plataforma'],
-        descricao=dados.get('descricao')
-    )
+    nome=dados['nome'],
+    plataforma=dados['plataforma'],
+    descricao=dados.get('descricao'),
+    imagem_url=dados.get('imagem_url')
+)
     
     db.session.add(novo_jogo)
     db.session.commit()
@@ -235,6 +250,71 @@ def deletar_jogo(id):
         "mensagem": f"Jogo '{jogo.nome}' deletado com sucesso!"
     })
 
+@app.route('/atualizar_jogo/<int:id>', methods=['PUT'])
+def atualizar_jogo(id):
+    """
+    Atualiza um jogo existente
+    ---
+    tags:
+      - Jogos
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do jogo a atualizar
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+              example: "Pokemon FireRed atualizado"
+            plataforma:
+              type: string
+              example: "Game Boy Advance"
+            descricao:
+              type: string
+              example: "Nova descricao"
+            imagem_url:
+              type: string
+              example: "https://exemplo.com/imagem.jpg"
+    responses:
+      200:
+        description: Jogo atualizado com sucesso
+      400:
+        description: Dados invalidos
+      404:
+        description: Jogo nao encontrado
+    """
+    jogo = Jogo.query.get(id)
+    
+    if not jogo:
+        return jsonify({"erro": "Jogo nao encontrado"}), 404
+    
+    dados = request.get_json()
+    
+    if not dados:
+        return jsonify({"erro": "Nenhum dado enviado"}), 400
+    
+    # atualiza os campos que vieram no request
+    if 'nome' in dados:
+        jogo.nome = dados['nome']
+    if 'plataforma' in dados:
+        jogo.plataforma = dados['plataforma']
+    if 'descricao' in dados:
+        jogo.descricao = dados['descricao']
+    if 'imagem_url' in dados:
+        jogo.imagem_url = dados['imagem_url']
+    
+    db.session.commit()
+    
+    return jsonify({
+        "mensagem": "Jogo atualizado com sucesso!",
+        "jogo": jogo.to_dict()
+    })
 
 @app.route('/cadastrar_etapa', methods=['POST'])
 def cadastrar_etapa():
@@ -373,7 +453,144 @@ def deletar_etapa(id):
     return jsonify({
         "mensagem": "Etapa deletada com sucesso!"
     })
+    
+@app.route('/atualizar_etapa/<int:id>', methods=['PUT'])
+def atualizar_etapa(id):
+    """
+    Atualiza uma etapa existente
+    ---
+    tags:
+      - Etapas
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID da etapa a atualizar
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            numero:
+              type: integer
+              example: 2
+            titulo:
+              type: string
+              example: "Novo titulo da etapa"
+            pista_leve:
+              type: string
+              example: "Nova pista leve"
+            pista_media:
+              type: string
+              example: "Nova pista direta"
+            resposta_completa:
+              type: string
+              example: "Nova resposta completa"
+    responses:
+      200:
+        description: Etapa atualizada com sucesso
+      400:
+        description: Dados invalidos
+      404:
+        description: Etapa nao encontrada
+    """
+    etapa = Etapa.query.get(id)
+    
+    if not etapa:
+        return jsonify({"erro": "Etapa nao encontrada"}), 404
+    
+    dados = request.get_json()
+    
+    if not dados:
+        return jsonify({"erro": "Nenhum dado enviado"}), 400
+    
+    if 'numero' in dados:
+        etapa.numero = dados['numero']
+    if 'titulo' in dados:
+        etapa.titulo = dados['titulo']
+    if 'pista_leve' in dados:
+        etapa.pista_leve = dados['pista_leve']
+    if 'pista_media' in dados:
+        etapa.pista_media = dados['pista_media']
+    if 'resposta_completa' in dados:
+        etapa.resposta_completa = dados['resposta_completa']
+    
+    db.session.commit()
+    
+    return jsonify({
+        "mensagem": "Etapa atualizada com sucesso!",
+        "etapa": etapa.to_dict()
+    })    
 
+@app.route('/buscar_jogo_externo', methods=['GET'])
+def buscar_jogo_externo():
+    """
+    Busca dados de um jogo na api externa RAWG
+    ---
+    tags:
+      - API Externa
+    parameters:
+      - in: query
+        name: nome
+        type: string
+        required: true
+        description: Nome do jogo para buscar na RAWG
+    responses:
+      200:
+        description: Dados do jogo encontrados
+      400:
+        description: Nome do jogo nao informado
+      404:
+        description: Nenhum jogo encontrado
+      500:
+        description: Erro ao consultar a API externa
+    """
+    nome = request.args.get('nome')
+    
+    if not nome:
+        return jsonify({"erro": "O parametro 'nome' e obrigatorio"}), 400
+    
+    # monta a url da rawg
+    url = f'https://api.rawg.io/api/games'
+    parametros = {
+        'key': RAWG_API_KEY,
+        'search': nome,
+        'page_size': 5
+    }
+    
+    try:
+        # faz a chamada pra api externa
+        resposta = requests.get(url, params=parametros, timeout=10)
+        
+        if resposta.status_code != 200:
+            return jsonify({"erro": "Erro ao consultar a RAWG"}), 500
+        
+        dados = resposta.json()
+        
+        if not dados.get('results'):
+            return jsonify({"erro": "Nenhum jogo encontrado"}), 404
+        
+        # filtra so os dados que interessam
+        jogos_encontrados = []
+        for jogo in dados['results']:
+            jogos_encontrados.append({
+                'nome': jogo.get('name'),
+                'imagem_url': jogo.get('background_image'),
+                'data_lancamento': jogo.get('released'),
+                'nota': jogo.get('rating'),
+                'metacritic': jogo.get('metacritic'),
+                'plataformas': [p['platform']['name'] for p in jogo.get('platforms', [])],
+                'generos': [g['name'] for g in jogo.get('genres', [])]
+            })
+        
+        return jsonify(jogos_encontrados)
+    
+    except requests.exceptions.Timeout:
+        return jsonify({"erro": "A RAWG demorou pra responder"}), 500
+    except Exception as e:
+        return jsonify({"erro": f"Erro inesperado: {str(e)}"}), 500
 
 # inicializa o servidor
 
@@ -381,4 +598,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)

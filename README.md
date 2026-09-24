@@ -115,6 +115,32 @@ O banco tem duas tabelas com relacionamento 1:N (um jogo tem várias etapas):
 
 Obs: Quando um jogo é deletado, todas as suas etapas são deletadas automaticamente.
 
+## API Externa
+
+Este projeto consome a [RAWG Video Games Database API](https://rawg.io/apidocs) para enriquecer o cadastro de jogos com dados como capa, notas, gêneros, plataformas e data de lançamento.
+
+### Sobre a RAWG
+
+A RAWG é uma das maiores bases de dados de videogames do mundo, com mais de 500 mil jogos catalogados. A API é gratuita para uso pessoal e de aprendizado.
+
+### Como configurar
+
+Para usar a integração com a RAWG, você precisa:
+
+1. Criar uma conta gratuita em rawg.io
+2. Acessar rawg.io/apidocs para pegar sua API Key
+3. Criar um arquivo `.env` na raiz do projeto com o seguinte conteúdo (substituindo pela sua chave): `RAWG_API_KEY=sua_chave_aqui`
+
+### Rota que consome a API externa
+
+- `GET /buscar_jogo_externo?nome=<nome_do_jogo>` - busca informações do jogo na RAWG
+
+A rota faz chamada para o endpoint oficial da RAWG (`https://api.rawg.io/api/games`) enviando a chave e o nome do jogo, e retorna dados filtrados como nome, imagem, data de lançamento, nota, plataformas e gêneros.
+
+### Licença de uso
+
+A RAWG API é gratuita para uso pessoal, educacional e não-comercial. Para uso comercial ou volumes maiores, consulte os termos de uso oficiais em rawg.io/apidocs.
+
 ## Front-end
 
 O front-end do projeto está em outro repositório: [guiagamer-fe](LINK_DO_FRONT)
