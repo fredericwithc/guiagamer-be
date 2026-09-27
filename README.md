@@ -1,4 +1,3 @@
-
 # GuiaGamer - API (Back-end)
 
 API REST do projeto **GuiaGamer**, um app web que oferece detonados de jogos com sistema de pistas progressivas para evitar spoilers indesejados.
@@ -13,7 +12,7 @@ O GuiaGamer nasceu pra resolver alguns problemas comuns dos gamers ao consultar 
 - Dificuldade de lembrar exatamente onde parou no detonado
 - Necessidade de consultar diferentes sites dependendo do jogo
 
-Para evitar spoilers, a API oferece um sistema de pistas em 3 níveis:
+Para evitar spoilers, o app oferece um sistema de pistas em 3 níveis:
 
 - **Dica leve**: uma sugestão sutil, sem entregar a resposta
 - **Dica direta**: orientação mais clara
@@ -23,7 +22,17 @@ Assim, o jogador escolhe quanto quer revelar a cada momento.
 
 Além disso, o app permite marcar etapas como concluídas, ajudando o jogador a acompanhar seu progresso e retomar de onde parou.
 
-No futuro, a ideia é que o site funcione como um "wikipedia" em que temos um sistema de login e que os usuarios podem cadastrar os jogos e detonados e fazerem sugestões de ajustes quando preferirem.
+No futuro, a ideia é que o site funcione como um "wikipedia" em que temos um sistema de login e que os usuários podem cadastrar os jogos e detonados e fazerem sugestões de ajustes quando preferirem.
+
+## Arquitetura
+
+O projeto segue o Cenário 1 da proposta do MVP, com três componentes se comunicando:
+
+- **Front-end** (nginx): interface web em HTML, CSS e JavaScript
+- **API GuiaGamer** (este repositório): API REST em Python com Flask, se comunica com o SQLite e com a API externa
+- **RAWG API** (externa): base de dados de jogos usada para enriquecer os cadastros
+
+![Arquitetura do GuiaGamer](arquitetura-guiagamer.png)
 
 ## Tecnologias usadas
 
@@ -33,6 +42,9 @@ No futuro, a ideia é que o site funcione como um "wikipedia" em que temos um si
 - Flask-CORS
 - Flasgger
 - SQLite
+- Requests (para consumir a API externa)
+- python-dotenv (para variáveis de ambiente)
+- Docker
 
 ## Como instalar e rodar
 
@@ -42,36 +54,17 @@ No futuro, a ideia é que o site funcione como um "wikipedia" em que temos um si
 
 ### Passo a passo
 
-1. Clonar o repositório:
+1. Clonar o repositório: `git clone https://github.com/fredericwithc/guiagamer-be.git` e depois `cd guiagamer-be`
 
-```
-git clone https://github.com/fredericwithc/guiagamer-be.git
-cd guiagamer-be
-```
+2. Criar o ambiente virtual: `python -m venv venv`
 
-2. Criar o ambiente virtual:
+3. Ativar o ambiente virtual: `venv\Scripts\activate`
 
-```
-python -m venv venv
-```
+4. Instalar as dependências: `pip install -r requirements.txt`
 
-3. Ativar o ambiente virtual:
+5. Configurar a chave da RAWG (veja a seção "API Externa" abaixo)
 
-```
-venv\Scripts\activate
-```
-
-4. Instalar as dependências:
-
-```
-pip install -r requirements.txt
-```
-
-5. Rodar o servidor:
-
-```
-python app.py
-```
+6. Rodar o servidor: `python app.py`
 
 A API vai estar rodando em `http://localhost:5000`
 
@@ -86,25 +79,34 @@ Com o servidor rodando, você pode acessar `http://localhost:5000/apidocs` pra v
 - `GET /listar_jogos` - lista todos os jogos
 - `POST /cadastrar_jogo` - cadastra um novo jogo
 - `GET /buscar_jogo/<id>` - busca um jogo pelo id
+- `PUT /atualizar_jogo/<id>` - atualiza um jogo existente
 - `DELETE /deletar_jogo/<id>` - deleta um jogo
 
 ### Etapas
 
 - `POST /cadastrar_etapa` - cadastra uma nova etapa
 - `GET /listar_etapas/<jogo_id>` - lista as etapas de um jogo
+- `PUT /atualizar_etapa/<id>` - atualiza uma etapa existente
 - `DELETE /deletar_etapa/<id>` - deleta uma etapa
+
+### API Externa
+
+- `GET /buscar_jogo_externo?nome=<nome>` - busca dados de um jogo na RAWG
 
 ## Banco de dados
 
 O banco tem duas tabelas com relacionamento 1:N (um jogo tem várias etapas):
 
 **Tabela jogos:**
+
 - id (chave primária)
 - nome
 - plataforma
 - descricao
+- imagem_url
 
 **Tabela etapas:**
+
 - id (chave primária)
 - jogo_id (chave estrangeira)
 - numero
@@ -117,7 +119,7 @@ Obs: Quando um jogo é deletado, todas as suas etapas são deletadas automaticam
 
 ## API Externa
 
-Este projeto consome a [RAWG Video Games Database API](https://rawg.io/apidocs) para enriquecer o cadastro de jogos com dados como capa, notas, gêneros, plataformas e data de lançamento.
+Este projeto consome a RAWG Video Games Database API para enriquecer o cadastro de jogos com dados como capa, notas, gêneros, plataformas e data de lançamento.
 
 ### Sobre a RAWG
 
@@ -133,17 +135,40 @@ Para usar a integração com a RAWG, você precisa:
 
 ### Rota que consome a API externa
 
-- `GET /buscar_jogo_externo?nome=<nome_do_jogo>` - busca informações do jogo na RAWG
-
-A rota faz chamada para o endpoint oficial da RAWG (`https://api.rawg.io/api/games`) enviando a chave e o nome do jogo, e retorna dados filtrados como nome, imagem, data de lançamento, nota, plataformas e gêneros.
+A rota `GET /buscar_jogo_externo?nome=<nome>` faz chamada para o endpoint oficial da RAWG (`https://api.rawg.io/api/games`) enviando a chave e o nome do jogo, e retorna dados filtrados como nome, imagem, data de lançamento, nota, plataformas e gêneros.
 
 ### Licença de uso
 
 A RAWG API é gratuita para uso pessoal, educacional e não-comercial. Para uso comercial ou volumes maiores, consulte os termos de uso oficiais em rawg.io/apidocs.
 
+## Como rodar com Docker
+
+O projeto tem um Dockerfile pronto para rodar em containers.
+
+### Pré-requisitos
+
+- Docker Desktop instalado e rodando
+
+### Passo a passo
+
+1. Clonar o repositório (se ainda não clonou): `git clone https://github.com/fredericwithc/guiagamer-be.git` e depois `cd guiagamer-be`
+
+2. Fazer o build da imagem: `docker build -t guiagamer-be .`
+
+3. Rodar o container (substituindo pela sua chave da RAWG): `docker run -d -p 5000:5000 -e RAWG_API_KEY=sua_chave_aqui --name guiagamer-back guiagamer-be`
+
+4. Acessar a API em `http://localhost:5000` ou a documentação em `http://localhost:5000/apidocs`
+
+### Comandos úteis
+
+- Ver logs: `docker logs guiagamer-back`
+- Parar o container: `docker stop guiagamer-back`
+- Iniciar de novo: `docker start guiagamer-back`
+- Remover o container: `docker rm guiagamer-back`
+
 ## Front-end
 
-O front-end do projeto está em outro repositório: [guiagamer-fe](LINK_DO_FRONT)
+O front-end do projeto está em outro repositório: https://github.com/fredericwithc/guiagamer-fe
 
 ## Feito por
 
