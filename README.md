@@ -26,7 +26,7 @@ No futuro, a ideia é que o site funcione como um "wikipedia" em que temos um si
 
 ## Arquitetura
 
-O projeto segue o Cenário 1 da proposta do MVP, com três componentes se comunicando:
+O projeto segue o Cenário 1.1 da proposta do MVP, com três componentes se comunicando:
 
 - **Front-end** (nginx): interface web em HTML, CSS e JavaScript
 - **API GuiaGamer** (este repositório): API REST em Python com Flask, se comunica com o SQLite e com a API externa
